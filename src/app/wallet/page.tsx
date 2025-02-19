@@ -1,12 +1,31 @@
-'use client'
 import React, { useState, useEffect } from 'react';
 import { Wallet, RefreshCcw, AlertCircle } from 'lucide-react';
 import {
   Card,
-  CardContent } from '@/components/ui/card';
+  CardContent,
+} from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Link from 'next/link';
 import { ethers } from 'ethers';
+
+// Define interfaces for our token types
+interface BaseToken {
+  name: string;
+  symbol: string;
+  decimals: number;
+}
+
+interface NativeToken extends BaseToken {
+  address: null;
+  isNative: true;
+}
+
+interface ERC20Token extends BaseToken {
+  address: string;
+  isNative: false;
+}
+
+type Token = NativeToken | ERC20Token;
 
 // ERC20 Token ABI - minimal ABI for balance checking
 const ERC20_ABI = [
@@ -27,24 +46,27 @@ const ERC20_ABI = [
 ];
 
 // Common tokens with their contract addresses (Ethereum Mainnet)
-const TOKENS = {
+const TOKENS: { [key: string]: Token } = {
   ETH: {
     name: 'Ethereum',
     symbol: 'ETH',
     decimals: 18,
-    address: null // null for native ETH
+    address: null,
+    isNative: true
   },
   USDT: {
     name: 'Tether USD',
     symbol: 'USDT',
     decimals: 6,
-    address: '0xdAC17F958D2ee523a2206206994597C13D831ec7'
+    address: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+    isNative: false
   },
   USDC: {
     name: 'USD Coin',
     symbol: 'USDC',
     decimals: 6,
-    address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+    address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+    isNative: false
   }
 };
 
@@ -64,7 +86,7 @@ const WalletPage = () => {
   const [connected, setConnected] = useState<boolean>(false);
 
   const connectWallet = async () => {
-    if (typeof window?.ethereum === 'undefined') {
+    if (typeof window.ethereum === 'undefined') {
       setError('Please install MetaMask to use this feature');
       return;
     }
@@ -85,25 +107,25 @@ const WalletPage = () => {
   const fetchTokenBalance = async (
     provider: ethers.Provider,
     walletAddress: string,
-    tokenInfo: typeof TOKENS.USDT
+    token: Token
   ) => {
     try {
-      if (!tokenInfo.address) {
+      if (token.isNative) {
         // Fetch native ETH balance
         const balance = await provider.getBalance(walletAddress);
-        return ethers.formatUnits(balance, tokenInfo.decimals);
+        return ethers.formatUnits(balance, token.decimals);
       }
 
       const contract = new ethers.Contract(
-        tokenInfo.address,
+        token.address,
         ERC20_ABI,
         provider
       );
       
       const balance = await contract.balanceOf(walletAddress);
-      return ethers.formatUnits(balance, tokenInfo.decimals);
+      return ethers.formatUnits(balance, token.decimals);
     } catch (err) {
-      console.error(`Error fetching ${tokenInfo.symbol} balance:`, err);
+      console.error(`Error fetching ${token.symbol} balance:`, err);
       return '0';
     }
   };
@@ -114,11 +136,11 @@ const WalletPage = () => {
 
     try {
       const provider = new ethers.JsonRpcProvider(
-        'https://eth-mainnet.g.alchemy.com/v2/alcht_HwQ1UJZma8xNVbgjQcKMkHtXu9iq0o'
+        'https://eth-mainnet.g.alchemy.com/v2/YOUR-API-KEY'
       );
 
       const balancePromises = Object.values(TOKENS).map(async (token) => {
-        const balance = await fetchTokenBalance(provider, address, token );
+        const balance = await fetchTokenBalance(provider, address, token);
         return {
           name: token.name,
           symbol: token.symbol,
