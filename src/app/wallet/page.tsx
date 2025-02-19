@@ -1,3 +1,4 @@
+'use client'
 import React, { useState, useEffect } from 'react';
 import { Wallet, RefreshCcw, AlertCircle } from 'lucide-react';
 import {
@@ -136,7 +137,7 @@ const WalletPage = () => {
 
     try {
       const provider = new ethers.JsonRpcProvider(
-        'https://eth-mainnet.g.alchemy.com/v2/YOUR-API-KEY'
+        'https://eth-mainnet.g.alchemy.com/v2/CG-xF7HArnbaAJqzwknmcR77Mm6'
       );
 
       const balancePromises = Object.values(TOKENS).map(async (token) => {
